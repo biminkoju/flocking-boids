@@ -358,6 +358,7 @@ Presets set **params and runtime toggles**, so each one is a scenario you can ju
 | `P` | Toggle the first predator |
 | `G` | Toggle the first target |
 | `0` | Reset camera zoom and pan |
+| `F11` | Toggle borderless fullscreen (Esc leaves fullscreen, it does not quit) |
 | `F5` | Toggle recording |
 | `F6` | Save the recording |
 | `F9` | Load a recording and enter replay mode |
@@ -520,6 +521,22 @@ python3 -c "import json;d=json.load(open('boids_state.json'));d['boidCount']=120
 
 Camera position is deliberately not persisted - it is a view, not simulation state.
 
+### Window and world size
+
+The window is resizable and **the world is the window**: resizing, maximising, or
+pressing F11 (borderless fullscreen) resizes the simulation itself, so there is never
+any letterboxing and the control panel always docks to the real right edge.
+
+On a size change every boid, predator and target is wrapped (toroidal mode) or
+clamped (walls) into the new bounds, obstacle radii and positions are re-fitted, and
+leadership is re-scored. The wind field stays seamless because its wavenumbers are
+derived from the screen size.
+
+The default window is 1280x800 and the minimum is 640x400; the world adopts
+whatever size the window manager actually gives you, so HiDPI and tiling window
+managers behave correctly. ESC no longer quits (use the window close button) so that
+ESC can mean "leave fullscreen".
+
 ---
 
 ## Recording and replay
@@ -605,6 +622,9 @@ recording.bin    default recording path
 - **Hunt pressure does not survive a restart as a toggle.** The derived values it wrote
   are persisted, but there is no stored manual pair across restarts.
 - **Replay does not draw targets**, though their positions are stored in the file.
+- **Resizing changes the world**, so wrap seams move and anything outside the new bounds is
+  pulled in. This is inherent to world = window; the alternative is a fixed world with
+  letterboxing.
 - **Topological mode is slower** than metric mode (about 29 % at 1200 boids) because
   the K-nearest selection sorts candidates.
 - **The panel is crowded.** Around 27 sliders and 12 key bindings; the panel is

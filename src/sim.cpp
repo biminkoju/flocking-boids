@@ -593,6 +593,44 @@ int Sim::speciesN() const {
     return std::max(2, std::min(params.speciesCount, kSpeciesMax));
 }
 
+// World == window. When the window changes size, wrap (in toroidal mode) or clamp
+// (otherwise) every position back inside the new bounds, and re-wrap obstacle and
+// target radii so nothing ends up buried in a wall. Rebuilding the grid is not
+// needed: it is rebuilt every step anyway.
+void Sim::onWorldResized() {
+    const float w = (float)kScreenWidth;
+    const float h = (float)kScreenHeight;
+    if (w <= 1.0f || h <= 1.0f) return;
+
+    auto fix = [&](Vector2& p) {
+        if (params.periodicBounds) {
+            p.x = std::fmod(std::fmod(p.x, w) + w, w);
+            p.y = std::fmod(std::fmod(p.y, h) + h, h);
+        } else {
+            p.x = Clamp(p.x, 0.0f, w);
+            p.y = Clamp(p.y, 0.0f, h);
+        }
+    };
+
+    for (Boid& b : boids) fix(b.pos);
+    for (Predator& pr : predators) fix(pr.pos);
+    for (Target& t : targets) {
+        fix(t.pos);
+        t.pos.x = Clamp(t.pos.x, 0.0f, std::max(0.0f, w - 1.0f));
+        t.pos.y = Clamp(t.pos.y, 0.0f, std::max(0.0f, h - 1.0f));
+    }
+    for (Obstacle& o : obstacles) {
+        const float r = std::min(o.radius, std::min(w, h) * 0.5f);
+        o.radius = r;
+        o.pos.x = Clamp(o.pos.x, r, std::max(r, w - r));
+        o.pos.y = Clamp(o.pos.y, r, std::max(r, h - r));
+    }
+
+    // Wind wavenumbers are quantised to the screen size, so the field is still
+    // seamless at the new dimensions; nothing to rebuild there.
+    leaderTimer = 1e9f;   // leadership depends on distances: re-score next step
+}
+
 void Sim::redistributeSpecies() {
     const int n = speciesN();
     for (size_t i = 0; i < boids.size(); ++i)

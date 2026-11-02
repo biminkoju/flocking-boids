@@ -11,12 +11,19 @@
 
 namespace boids {
 
-constexpr int   kScreenWidth  = 1280;
-constexpr int   kScreenHeight = 800;
+// Window size doubles as the world size, so these are mutable: resizing the
+// window (or going fullscreen) resizes the world. C++17 inline variables keep
+// every existing use site working without threading a parameter through ~50 calls.
+inline int kScreenWidth  = 1280;
+inline int kScreenHeight = 800;
 constexpr float kPanelW       = 336.0f;
-constexpr float kPanelH       = 760.0f;
-constexpr float kPanelX       = kScreenWidth - kPanelW - 12.0f;
 constexpr float kPanelY       = 12.0f;
+
+// Panel x depends on the live window width, so it is a function, not a constant.
+inline float panelX() { return (float)kScreenWidth - kPanelW - 12.0f; }
+
+// Panel height follows the window too, leaving a small margin top and bottom.
+inline float panelH() { return (float)kScreenHeight - 2.0f * kPanelY; }
 
 constexpr int kBoidMin     = 1;
 constexpr int kBoidMax     = 1200;
@@ -338,6 +345,10 @@ struct Sim {
     int  speciesN() const;
     // Re-deals species ids across the live flock, keeping the split even.
     void redistributeSpecies();
+
+    // The world is the window: after a resize, everything that may now lie
+    // outside the bounds is folded back in. Called once per size change.
+    void onWorldResized();
 
     // True while huntPressure is driving predatorSpeed / catchRadius, i.e. those
     // two individual sliders are overridden and have no effect.

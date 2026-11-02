@@ -320,8 +320,8 @@ void drawCharts(const Sim& sim, Rectangle view, float x, float y) {
 
 Rectangle panelRect(const Ui& ui) {
     return ui.panelOpen
-        ? Rectangle{kPanelX, kPanelY, kPanelW, kPanelH}
-        : Rectangle{kPanelX, kPanelY, kPanelW, 44.0f};
+        ? Rectangle{panelX(), kPanelY, kPanelW, panelH()}
+        : Rectangle{panelX(), kPanelY, kPanelW, 44.0f};
 }
 
 void drawPanel(Sim& sim, Ui& ui, int& boidCount, int& leaderCount, float dt,

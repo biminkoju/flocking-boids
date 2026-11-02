@@ -199,9 +199,15 @@ int main(int argc, char** argv) {
     if (evolveGens > 0) return runEvolve(evolveGens, evolveOut.c_str());
     if (headlessFrames >= 0) return runHeadless(headlessFrames);
 
-    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(kScreenWidth, kScreenHeight, "Boids - advanced flocking");
     SetTargetFPS(60);
+    SetWindowMinSize(640, 400);
+    kScreenWidth  = GetScreenWidth();
+    kScreenHeight = GetScreenHeight();
+    bool fullscreen = false;
+    // raylib quits on ESC by default, which would fight "ESC leaves fullscreen".
+    SetExitKey(KEY_NULL);
 
     Sim sim;
     Ui  ui;
@@ -245,6 +251,28 @@ int main(int argc, char** argv) {
     while (!WindowShouldClose()) {
         const float dt = std::min(GetFrameTime(), 1.0f / 30.0f);
         const bool replaying = rec.playing;
+
+        // ------------------------------------------------- window / world size
+        // F11 toggles borderless fullscreen; Esc leaves fullscreen (and only then
+        // quits). The world IS the window, so any size change is published to the
+        // sim before anything else this frame runs.
+        if (IsKeyPressed(KEY_F11)) {
+            fullscreen = !fullscreen;
+            ToggleBorderlessWindowed();
+        }
+        if (fullscreen && IsKeyPressed(KEY_ESCAPE) && !rec.playing) {
+            fullscreen = false;
+            ToggleBorderlessWindowed();
+        }
+        {
+            const int winW = GetScreenWidth();
+            const int winH = GetScreenHeight();
+            if (winW != kScreenWidth || winH != kScreenHeight) {
+                kScreenWidth  = winW;
+                kScreenHeight = winH;
+                sim.onWorldResized();
+            }
+        }
 
         // ------------------------------------------------------ camera
         // Wheel zooms toward the cursor; space+LMB drag pans. Both run before
