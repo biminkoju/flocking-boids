@@ -1,0 +1,43 @@
+# ---- build output ----
+/build/
+build*/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+compile_commands.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+.ninja_deps
+.ninja_log
+
+# ---- vendored raylib: built locally, never committed ----
+# raylib-src contains its own .git and would register as a broken submodule.
+/third_party/raylib-src/
+/third_party/raylib-build/
+/third_party/raylib/
+
+# ---- runtime artefacts ----
+boids_state.json
+boids_selftest.json
+boids_selftest.bin
+recording.bin
+evolved_params.json
+
+# ---- editors / OS ----
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# ---- logs & misc ----
+*.log
+core
