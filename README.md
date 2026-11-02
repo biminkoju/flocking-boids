@@ -8,6 +8,8 @@ and record/replay — all with a live, scrollable control panel.
 Everything is driven by one **prioritised force budget**, so behaviour degrades
 gracefully instead of exploding when the flock is under pressure.
 
+![Three species, a gold leader cluster, predators, depleting food and the wind field, all running at once](docs/screenshot.png)
+
 ---
 
 ## Table of contents
@@ -575,6 +577,8 @@ Other design notes:
 ```
 CMakeLists.txt   build definition; links the local raylib import target
 run.sh           one-shot build + run helper (sets LD_LIBRARY_PATH)
+LICENSE          GNU General Public License v3.0 (full text)
+docs/            screenshots used by this README
 src/sim.hpp      Boid, Obstacle, Target, Predator, Params, Stats, Frame, Recorder, Sim
 src/sim.cpp      spatial grid, steering rules, predator AI, foraging, stamina, wind,
                  occlusion, stats, debug overlay, JSON state, presets, recorder, drawing
