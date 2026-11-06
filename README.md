@@ -98,6 +98,66 @@ The build is warning-clean under `-Wall -Wextra -Wformat=2`. `-Wformat=2` is loa
 it is what catches a `snprintf` whose argument list does not match its format string, a
 bug class that has silently corrupted saved state in this project before.
 
+### Web build (WebAssembly)
+
+There is a separate `build/web/` directory for the browser build. It uses
+[Emscripten](https://emscripten.org/) and the raylib `PLATFORM=Web` build.
+
+#### One-shot build
+
+```sh
+./build_web.sh
+```
+
+This clones emsdk into `./emsdk` (first run only), builds raylib for `PLATFORM=Web`
+into `third_party/raylib-web/raylib`, then configures and builds the simulation into
+`build/web/` with `-DBOIDS_WEB=ON`.
+
+#### Output
+
+```
+build/web/boids.html   # self-contained page (open this in a browser)
+build/web/boids.js     # glue code
+build/web/boids.wasm   # compiled simulation
+```
+
+The page runs the **full desktop simulation**: predation, foraging, stamina, species,
+wind, recording/replay, charts, the control panel, mouse tools, and everything else
+from the desktop build.
+
+#### Serve it
+
+Open `boids.html` through a local static file server (browsers block some WASM features
+on `file://`):
+
+```sh
+cd build/web && python3 -m http.server 8000
+# open http://localhost:8000/boids.html
+```
+
+Any static server works (Node `http-server`, `php -S`, etc.).
+
+#### Manual build (without `build_web.sh`)
+
+```sh
+source emsdk/emsdk_env.sh            # or wherever emsdk lives
+
+# 1. Build raylib for Web (once)
+cmake -S third_party/raylib-src -B third_party/raylib-web \
+      -DCMAKE_BUILD_TYPE=Release -DPLATFORM=Web \
+      -DBUILD_EXAMPLES=OFF -DBUILD_SHARED_LIBS=OFF \
+      -DCMAKE_TOOLCHAIN_FILE=<emsdk>/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+cmake --build third_party/raylib-web -j$(nproc)
+
+# 2. Build the simulation for Web into build/web/
+cmake -S . -B build/web -DCMAKE_BUILD_TYPE=Release -DBOIDS_WEB=ON \
+      -DCMAKE_TOOLCHAIN_FILE=<emsdk>/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
+cmake --build build/web -j$(nproc)
+```
+
+The first run clones emsdk into `./emsdk` and builds raylib for `PLATFORM=Web` into
+`./third_party/raylib-web/raylib`; subsequent runs reuse both.
+
 ---
 
 ## Features

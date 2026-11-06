@@ -9,6 +9,7 @@ cmake-build-*/
 *.dylib
 *.dll
 *.exe
+*.wasm
 compile_commands.json
 CMakeCache.txt
 CMakeFiles/
@@ -17,10 +18,18 @@ Makefile
 .ninja_deps
 .ninja_log
 
+# Generated HTML (e.g. boids.html in build/web/) is covered by /build/ above.
+# Keep the source template tracked:
+!src/shell.html
+
+# ---- Emscripten SDK (large, cloned toolchain) ----
+/emsdk/
+
 # ---- vendored raylib: built locally, never committed ----
 # raylib-src contains its own .git and would register as a broken submodule.
 /third_party/raylib-src/
 /third_party/raylib-build/
+/third_party/raylib-web/
 /third_party/raylib/
 
 # ---- runtime artefacts ----

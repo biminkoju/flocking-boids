@@ -26,6 +26,10 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#ifdef PLATFORM_WEB
+#include <emscripten/html5.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -40,6 +44,25 @@ using namespace boids;
 constexpr int kMaxObstacles = 12;
 
 int clampInt(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+#ifdef PLATFORM_WEB
+float mouseScaleX = 1.0f;
+float mouseScaleY = 1.0f;
+#endif
+
+// On web, raylib's GLFW backend reports mouse in CSS pixels while the canvas
+// buffer may be a different size (device-pixel scaling, etc.). Rescale from
+// CSS pixels to raylib's buffer space so mouse maps 1:1.
+inline Vector2 GetMouseFixed() {
+#ifdef PLATFORM_WEB
+    Vector2 m = GetMousePosition();
+    m.x *= mouseScaleX;
+    m.y *= mouseScaleY;
+    return m;
+#else
+    return GetMousePosition();
+#endif
+}
 
 void activateFirstTarget(Sim& sim, Vector2 mouse) {
     if (sim.targets.empty()) sim.targets.push_back(Target{});
@@ -203,8 +226,24 @@ int main(int argc, char** argv) {
     InitWindow(kScreenWidth, kScreenHeight, "Boids - advanced flocking");
     SetTargetFPS(60);
     SetWindowMinSize(640, 400);
+#ifdef PLATFORM_WEB
+    // Do NOT call SetWindowSize — raylib keeps its InitWindow logical size.
+    // Mouse is reported in CSS pixels; scale from the actual canvas buffer
+    // size to raylib's logical screen size so mouse maps 1:1.
+    int bufW = EM_ASM_INT({ return document.getElementById('canvas').width; });
+    int bufH = EM_ASM_INT({ return document.getElementById('canvas').height; });
+    int sw   = GetScreenWidth();   // InitWindow logical size (e.g. 1280)
+    int sh   = GetScreenHeight();  // InitWindow logical size (e.g. 800)
+    if (bufW > 0 && bufH > 0 && sw > 0 && sh > 0) {
+        mouseScaleX = (float)bufW / (float)sw;
+        mouseScaleY = (float)bufH / (float)sh;
+    }
+    kScreenWidth  = sw;
+    kScreenHeight = sh;
+#else
     kScreenWidth  = GetScreenWidth();
     kScreenHeight = GetScreenHeight();
+#endif
     bool fullscreen = false;
     // raylib quits on ESC by default, which would fight "ESC leaves fullscreen".
     SetExitKey(KEY_NULL);
@@ -273,12 +312,27 @@ int main(int argc, char** argv) {
                 sim.onWorldResized();
             }
         }
+#ifdef PLATFORM_WEB
+        // Keep mouse scale synced to the canvas buffer, which the shell JS
+        // resizes directly on browser resize. Do NOT call SetWindowSize —
+        // raylib keeps its InitWindow logical size.
+        {
+            int bufW = EM_ASM_INT({ return document.getElementById('canvas').width; });
+            int bufH = EM_ASM_INT({ return document.getElementById('canvas').height; });
+            int sw   = GetScreenWidth();
+            int sh   = GetScreenHeight();
+            if (bufW > 0 && bufH > 0 && sw > 0 && sh > 0) {
+                mouseScaleX = (float)sw / (float)bufW;
+                mouseScaleY = (float)sh / (float)bufH;
+            }
+        }
+#endif
 
         // ------------------------------------------------------ camera
         // Wheel zooms toward the cursor; space+LMB drag pans. Both run before
         // any world-space hit testing so the mouse maps correctly.
         if (!ui.isEditing()) {
-            const Vector2 wheelAt = GetMousePosition();
+            const Vector2 wheelAt = GetMouseFixed();
             // The settings panel scrolls with the same wheel event, so the
             // camera must ignore it while the cursor is over the panel.
             const bool wheelOverPanel =
@@ -300,11 +354,11 @@ int main(int argc, char** argv) {
         }
         const bool spaceHeld = IsKeyDown(KEY_SPACE);
         const bool overPanelForPan =
-            CheckCollisionPointRec(GetMousePosition(), panelRect(ui));
+            CheckCollisionPointRec(GetMouseFixed(), panelRect(ui));
         if (spaceHeld && IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !ui.isEditing() &&
             !overPanelForPan) {
-            if (!panning) { panning = true; panAnchor = GetMousePosition(); }
-            const Vector2 now = GetMousePosition();
+            if (!panning) { panning = true; panAnchor = GetMouseFixed(); }
+            const Vector2 now = GetMouseFixed();
             camera.offset = Vector2Add(camera.offset, Vector2Subtract(now, panAnchor));
             panAnchor = now;
             spacePanned = true;
@@ -374,7 +428,7 @@ int main(int argc, char** argv) {
         }
 
         // ------------------------------------------------------ mouse
-        const Vector2 screenMouse = GetMousePosition();
+        const Vector2 screenMouse = GetMouseFixed();
         const Vector2 mouse       = GetScreenToWorld2D(screenMouse, camera);
         const Vector2 mouseDelta  = Vector2Scale(GetMouseDelta(), 1.0f / camera.zoom);
         const Rectangle panel    = panelRect(ui);
